@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="todoApp">
+<head>
+  <meta charset="UTF-8">
+  <title>AngularJS Todo App</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-animate.js"></script>
+  <style>
+    /* Page background */
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px; margin: 40px auto; padding: 20px;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #74b9ff, #a29bfe, #ffeaa7);
+    }
+    h2 {
+      text-align: center; color: #2c3e50; background: #fff; padding: 10px;
+      border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    .bar { display:flex; gap:8px; margin:12px 0; }
+    input { flex:1; padding:10px; border-radius:6px; border:1px solid #ccc; }
+    .add-btn { background: #2ecc71; color: #fff; border:0; padding:10px 16px; border-radius:6px; cursor:pointer; }
+    .add-btn:hover { background:#27ae60; }
+
+    ul { list-style:none; padding:0; }
+    li {
+      padding:10px; margin:8px 0; display:flex; justify-content:space-between; align-items:center;
+      border-radius:8px; background:#ecf0f1; transition: background .3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,.08);
+    }
+    li:nth-child(even) { background:#dfe6e9; }
+    li:hover { background:#636e72; color:#fff; }
+
+    button {
+      background:#e74c3c; color:#fff; border:0; padding:6px 10px; border-radius:6px; cursor:pointer;
+      transition: background .2s ease;
+    }
+    button:hover { background:#c0392b; }
+
+    /* Animations */
+    .todo-item.ng-enter {
+      transition: all .35s ease-in;
+      opacity: 0; transform: translateY(-8px) scale(.98);
+    }
+    .todo-item.ng-enter-active {
+      opacity: 1; transform: translateY(0) scale(1);
+    }
+    .todo-item.ng-leave {
+      transition: all .35s ease-out;
+      opacity: 1; transform: translateY(0) scale(1);
+    }
+    .todo-item.ng-leave-active {
+      opacity: 0; transform: translateY(8px) scale(.98);
+    }
+
+    /* Error banner */
+    .error {
+      background:#fdecea; color:#b00020; border:1px solid #f5c6cb; padding:10px; border-radius:6px;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body ng-controller="TodoController">
+  <h2>🌟 Todo Application 🌟</h2>
+
+  <div class="bar">
+    <input type="text" ng-model="newTask" placeholder="Enter a task" ng-keypress="$event.key==='Enter' && addTask()">
+    <button class="add-btn" ng-click="addTask()">Add</button>
+  </div>
+
+  <div class="error" ng-if="error">{{error}}</div>
+
+  <ul>
+    <li class="todo-item" ng-repeat="todo in todos track by todo.id">
+      <span>{{todo.task}}</span>
+      <button ng-click="deleteTask(todo.id)">Delete</button>
+    </li>
+  </ul>
+
+  <script>
+    var app = angular.module("todoApp", ["ngAnimate"]);
+
+    app.controller("TodoController", function($scope, $http) {
+      // Use absolute URL so it works from file:// or http://localhost
+      const API_URL = "http://localhost:3000/api/todos";
+
+      $scope.todos = [];
+      $scope.error = null;
+
+      function handleErr(where, err) {
+        console.error(where, err);
+        $scope.error = (err && err.data && err.data.error) ? err.data.error
+                     : "Request failed. Is the server running at http://localhost:3000 ?";
+      }
+
+      function loadTodos() {
+        $http.get(API_URL).then(res => {
+          $scope.todos = res.data || [];
+          $scope.error = null;
+        }).catch(err => handleErr("GET /api/todos", err));
+      }
+
+      $scope.addTask = function() {
+        if (!$scope.newTask || !$scope.newTask.trim()) return;
+        $http.post(API_URL, { task: $scope.newTask.trim() })
+          .then(() => {
+            $scope.newTask = "";
+            $scope.error = null;
+            loadTodos();
+          })
+          .catch(err => handleErr("POST /api/todos", err));
+      };
+
+      $scope.deleteTask = function(id) {
+        $http.delete(API_URL + "/" + id)
+          .then(() => {
+            $scope.error = null;
+            loadTodos();
+          })
+          .catch(err => handleErr("DELETE /api/todos", err));
+      };
+
+      loadTodos();
+    });
+  </script>
+</body>
+</html>
